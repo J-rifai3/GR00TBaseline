@@ -1,5 +1,7 @@
 # GR00T Baseline — Teleoperation Preprocessing
 
+Note that this a lot of the main parts of this project are made private due to research restrictions!
+
 Preprocessing pipeline for converting teleoperation demonstrations into **GR00T LeRobot v2** format for fine-tuning with [NVIDIA Isaac-GR00T](https://github.com/NVIDIA/Isaac-GR00T).
 
 This repo handles data conversion and validation. Training runs in a separate Isaac-GR00T environment.
