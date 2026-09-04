@@ -1,0 +1,36 @@
+[project]
+name = "gr00t-baseline"
+version = "0.1.0"
+description = "Teleoperation data preprocessing for GR00T baseline fine-tuning"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pyarrow>=14.0",
+    "opencv-python-headless>=4.8",
+    "jsonlines>=4.0",
+    "tqdm>=4.66",
+    "tyro>=0.8",
+]
+
+[project.optional-dependencies]
+hdf5 = ["h5py>=3.10"]
+dev = ["pytest>=7.4", "ruff>=0.4"]
+
+[project.scripts]
+gr00t-inspect = "gr00t_baseline.cli:inspect_main"
+gr00t-convert = "gr00t_baseline.cli:convert_main"
+gr00t-validate = "gr00t_baseline.cli:validate_main"
+gr00t-split = "gr00t_baseline.cli:split_main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
