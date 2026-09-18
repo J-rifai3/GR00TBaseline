@@ -8,11 +8,19 @@ build/
 .venv/
 venv/
 .env
+.pytest_cache/
+.ruff_cache/
 
 # Data (keep structure, ignore contents)
 data/raw/
 data/processed/
 data/splits/
+
+# Isaac-GR00T clone + GPU run artifacts (created on the train machine)
+train/Isaac-GR00T/
+train/checkpoints/
+train/runs/
+train/outputs/
 
 # IDE / OS
 .DS_Store

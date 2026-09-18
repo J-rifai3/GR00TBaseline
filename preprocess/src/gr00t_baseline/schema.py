@@ -14,10 +14,26 @@ class ModalitySlice:
 
     start: int
     end: int
+    original_key: str | None = None
+    rotation_type: str | None = None
+    dtype: str | None = None
+    absolute: bool | None = None
 
     @property
     def dim(self) -> int:
         return self.end - self.start
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {"start": self.start, "end": self.end}
+        if self.original_key is not None:
+            data["original_key"] = self.original_key
+        if self.rotation_type is not None:
+            data["rotation_type"] = self.rotation_type
+        if self.dtype is not None:
+            data["dtype"] = self.dtype
+        if self.absolute is not None:
+            data["absolute"] = self.absolute
+        return data
 
 
 @dataclass
@@ -32,10 +48,17 @@ class ModalitySchema:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ModalitySchema:
         def parse_slices(section: dict[str, Any]) -> dict[str, ModalitySlice]:
-            return {
-                key: ModalitySlice(start=v["start"], end=v["end"])
-                for key, v in section.items()
-            }
+            slices: dict[str, ModalitySlice] = {}
+            for key, value in section.items():
+                slices[key] = ModalitySlice(
+                    start=value["start"],
+                    end=value["end"],
+                    original_key=value.get("original_key"),
+                    rotation_type=value.get("rotation_type"),
+                    dtype=value.get("dtype"),
+                    absolute=value.get("absolute"),
+                )
+            return slices
 
         video = {
             key: v["original_key"]
@@ -59,8 +82,8 @@ class ModalitySchema:
 
     def to_dict(self) -> dict[str, Any]:
         return {
-            "state": {k: {"start": v.start, "end": v.end} for k, v in self.state.items()},
-            "action": {k: {"start": v.start, "end": v.end} for k, v in self.action.items()},
+            "state": {k: v.to_dict() for k, v in self.state.items()},
+            "action": {k: v.to_dict() for k, v in self.action.items()},
             "video": {k: {"original_key": v} for k, v in self.video.items()},
             "annotation": {k: {"original_key": v} for k, v in self.annotation.items()},
         }

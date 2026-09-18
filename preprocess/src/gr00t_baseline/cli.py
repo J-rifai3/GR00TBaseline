@@ -12,14 +12,21 @@ import jsonlines
 import tyro
 
 from gr00t_baseline.converter import convert_raw_to_lerobot
+from gr00t_baseline.halab import DEFAULT_TASK, default_sonic_modality_dict, discover_halab_task
+from gr00t_baseline.halab_convert import convert_halab_task
+from gr00t_baseline.halab_download import download_halab_task, list_halab_tasks
+from gr00t_baseline.paths import configs_dir, data_root
 from gr00t_baseline.raw_io import RawEpisodeLoader
 from gr00t_baseline.schema import ModalitySchema
 from gr00t_baseline.validator import validate_dataset
 
+_DATA = data_root()
+_CONFIGS = configs_dir()
+
 
 @dataclass
 class InspectArgs:
-    raw_root: Path = Path("data/raw")
+    raw_root: Path = _DATA / "raw"
     """Directory containing episode_* folders."""
 
     suggest_modality: bool = True
@@ -28,13 +35,13 @@ class InspectArgs:
 
 @dataclass
 class ConvertArgs:
-    raw_root: Path = Path("data/raw")
+    raw_root: Path = _DATA / "raw"
     """Input directory with episode_* folders."""
 
-    output_root: Path = Path("data/processed/my_dataset")
+    output_root: Path = _DATA / "processed" / "my_dataset"
     """Output GR00T LeRobot v2 dataset directory."""
 
-    modality_config: Path = Path("configs/modality_template.json")
+    modality_config: Path = _CONFIGS / "modality_template.json"
     """Path to meta/modality.json template."""
 
     overwrite: bool = False
@@ -46,7 +53,7 @@ class ConvertArgs:
 
 @dataclass
 class ValidateArgs:
-    dataset_root: Path = Path("data/processed/my_dataset")
+    dataset_root: Path = _DATA / "processed" / "my_dataset"
     """Dataset root containing meta/, data/, videos/."""
 
     frame_tolerance: int = 2
@@ -54,8 +61,65 @@ class ValidateArgs:
 
 
 @dataclass
+class DownloadHalabArgs:
+    task: str = DEFAULT_TASK
+    """HA-Lab task folder name under halab/ on Hugging Face."""
+
+    output_root: Path = _DATA / "raw"
+    """Local directory that will contain halab/<task>/."""
+
+    list_tasks: bool = False
+    """Print available HA-Lab task names and exit."""
+
+    include_videos: bool = True
+    """Download MP4s (needed for GR00T)."""
+
+    include_annotations: bool = True
+    """Download preprocess/annotation parquet (optional language extras)."""
+
+    include_aligned_extras: bool = False
+    """Download Boxer/BEV extras. Not required for GR00T/SONIC."""
+
+    include_raw_streams: bool = False
+    """Download raw tar/jsonl streams. Large; not required for GR00T/SONIC."""
+
+
+@dataclass
+class InspectHalabArgs:
+    source_root: Path = _DATA / "raw" / "halab" / DEFAULT_TASK
+    """Local HA-Lab task directory (contains data/, meta/, videos/)."""
+
+
+@dataclass
+class ConvertHalabArgs:
+    source_root: Path = _DATA / "raw" / "halab" / DEFAULT_TASK
+    """Local HA-Lab task directory."""
+
+    output_root: Path = _DATA / "processed" / DEFAULT_TASK
+    """Output GR00T LeRobot v2 dataset directory."""
+
+    modality_config: Path | None = None
+    """Optional modality.json. Defaults to the bundled UNITREE_G1_SONIC slices."""
+
+    overwrite: bool = False
+    """Replace output directory if it exists."""
+
+    max_episodes: int | None = None
+    """Convert only the first N episodes (useful for a smoke test)."""
+
+    symlink_videos: bool = False
+    """Symlink MP4s instead of copying them."""
+
+    require_videos: bool = True
+    """Fail if an episode is missing its camera MP4."""
+
+    transcode_h264: bool = False
+    """Re-encode videos as H.264 (recommended for GR00T torchcodec). Requires ffmpeg."""
+
+
+@dataclass
 class SplitArgs:
-    dataset_root: Path = Path("data/processed/my_dataset")
+    dataset_root: Path = _DATA / "processed" / "my_dataset"
     """Dataset to split."""
 
     val_ratio: float = 0.1
@@ -106,6 +170,94 @@ def inspect_main() -> None:
         }
         print("Suggested modality.json (edit keys/slices for your robot):")
         print(json.dumps(draft, indent=2))
+
+
+def download_halab_main() -> None:
+    """Download one HA-Lab task from Hugging Face."""
+    args = tyro.cli(DownloadHalabArgs)
+    if args.list_tasks:
+        for name in list_halab_tasks():
+            print(name)
+        return
+
+    task_root = download_halab_task(
+        task=args.task,
+        output_root=args.output_root,
+        include_videos=args.include_videos,
+        include_annotations=args.include_annotations,
+        include_aligned_extras=args.include_aligned_extras,
+        include_raw_streams=args.include_raw_streams,
+    )
+    print(f"Downloaded HA-Lab task '{args.task}' -> {task_root}")
+    print("Next:")
+    print(f"  gr00t-inspect-halab --source-root {task_root}")
+    print(
+        f"  gr00t-convert-halab --source-root {task_root} "
+        f"--output-root {_DATA / 'processed' / args.task}"
+    )
+
+
+def inspect_halab_main() -> None:
+    """Print HA-Lab task metadata and a sample parquet schema."""
+    args = tyro.cli(InspectHalabArgs)
+    import pandas as pd
+
+    from gr00t_baseline.halab import list_episode_parquets, load_info, load_task_prompt
+
+    layout = discover_halab_task(args.source_root)
+    info = load_info(layout.task_root)
+    parquets = list_episode_parquets(layout)
+    df = pd.read_parquet(parquets[0])
+    first_state = df["observation.state"].iloc[0]
+    print(json.dumps(
+        {
+            "task_root": str(layout.task_root),
+            "task_prompt": load_task_prompt(layout.task_root),
+            "robot_type": info.get("robot_type"),
+            "fps": info.get("fps"),
+            "total_episodes": info.get("total_episodes"),
+            "episodes_on_disk": len(parquets),
+            "source_video_key": layout.source_video_key,
+            "parquet_columns": list(df.columns),
+            "observation.state_dim": len(first_state),
+            "action.latent_state_dim": len(df["action.latent_state"].iloc[0])
+            if "action.latent_state" in df.columns
+            else None,
+            "action.hand_action_dim": len(df["action.hand_action"].iloc[0])
+            if "action.hand_action" in df.columns
+            else None,
+        },
+        indent=2,
+    ))
+    print("\nSuggested GR00T/SONIC modality.json:")
+    print(json.dumps(default_sonic_modality_dict(), indent=2))
+
+
+def convert_halab_main() -> None:
+    """Convert a local HA-Lab task into GR00T LeRobot v2 / SONIC format."""
+    args = tyro.cli(ConvertHalabArgs)
+    if args.modality_config is None:
+        modality = ModalitySchema.from_dict(default_sonic_modality_dict())
+    else:
+        modality = ModalitySchema.load(args.modality_config)
+
+    result = convert_halab_task(
+        source_root=args.source_root,
+        output_root=args.output_root,
+        modality=modality,
+        overwrite=args.overwrite,
+        max_episodes=args.max_episodes,
+        symlink_videos=args.symlink_videos,
+        require_videos=args.require_videos,
+        transcode_h264=args.transcode_h264,
+    )
+    print(
+        f"Converted {result.num_episodes} episodes ({result.num_frames} frames) "
+        f"for task '{result.task}' -> {result.dataset_root}"
+    )
+    if result.skipped_missing_video:
+        print(f"Warning: {result.skipped_missing_video} episode(s) had no video")
+    print(f"Next: gr00t-validate --dataset-root {result.dataset_root}")
 
 
 def convert_main() -> None:

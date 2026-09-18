@@ -1,0 +1,3 @@
+pick_tennis_ball_place_black_basket
+pick_puppy_doll_place_black_basket
+pick_tennis_racket_place_black_chair

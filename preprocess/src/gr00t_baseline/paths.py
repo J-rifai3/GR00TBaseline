@@ -1,8 +1,26 @@
-"""Path conventions for GR00T LeRobot v2 datasets."""
+"""Path conventions for GR00T LeRobot v2 datasets and this repo's layout."""
 
 from __future__ import annotations
 
 from pathlib import Path
+
+
+def preprocess_root() -> Path:
+    """Directory containing pyproject.toml / configs / src (this package)."""
+    return Path(__file__).resolve().parents[2]
+
+
+def repo_root() -> Path:
+    """GR00Tbaseline root: preprocess/, train/, and shared data/ live here."""
+    return preprocess_root().parent
+
+
+def data_root() -> Path:
+    return repo_root() / "data"
+
+
+def configs_dir() -> Path:
+    return preprocess_root() / "configs"
 
 
 def episode_name(episode_index: int) -> str:

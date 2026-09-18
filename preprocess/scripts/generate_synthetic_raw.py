@@ -10,9 +10,12 @@ import cv2
 import numpy as np
 import tyro
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_DEFAULT_RAW = _REPO_ROOT / "data" / "raw"
+
 
 def main(
-    output_dir: Path = Path("data/raw"),
+    output_dir: Path = _DEFAULT_RAW,
     num_episodes: int = 3,
     episode_length: int = 60,
     state_dim: int = 6,
@@ -60,11 +63,12 @@ def main(
 
         print(f"Wrote {ep_dir} ({episode_length} steps, cameras={list(cameras)})")
 
+    processed = _REPO_ROOT / "data" / "processed" / "demo"
     print(f"\nSynthetic raw data ready at {output_dir}")
     print("Next steps:")
-    print("  gr00t-inspect --raw-root data/raw")
-    print("  gr00t-convert --raw-root data/raw --output-root data/processed/demo")
-    print("  gr00t-validate --dataset-root data/processed/demo")
+    print(f"  gr00t-inspect --raw-root {output_dir}")
+    print(f"  gr00t-convert --raw-root {output_dir} --output-root {processed}")
+    print(f"  gr00t-validate --dataset-root {processed}")
 
 
 if __name__ == "__main__":

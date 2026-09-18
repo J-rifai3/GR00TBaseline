@@ -94,6 +94,14 @@ def validate_dataset(dataset_root: Path, *, frame_tolerance: int = 2) -> Validat
                     f"Episode {ep_idx}: action dim mismatch (expected {modality.action_dim})"
                 )
 
+        annotation_cols = [
+            f"annotation.{key}" if not key.startswith("annotation.") else key
+            for key in modality.annotation
+        ]
+        for col in annotation_cols:
+            if col not in df.columns:
+                report.error(f"Episode {ep_idx} parquet missing annotation column: {col}")
+
         for short_key, original_key in modality.video.items():
             vid = video_path(dataset_root, original_key, ep_idx)
             if not vid.exists():
