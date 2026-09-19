@@ -18,6 +18,15 @@ pip install -e ".[halab]"
 
 Or: `./setup.sh`
 
+`../data/` is gitignored. To re-download the three baseline tasks (see `../train/datasets.txt`):
+
+```bash
+./redownload_halab.sh                 # raw HA-Lab only → ../data/raw/halab/
+./redownload_halab.sh --convert       # also write GR00T LeRobot v2 → ../data/processed/
+./redownload_halab.sh --convert --transcode-h264 --validate
+./redownload_halab.sh --task pick_tennis_ball_place_black_basket
+```
+
 ## Quick start (synthetic)
 
 ```bash

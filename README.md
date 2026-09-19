@@ -26,6 +26,15 @@ gr00t-convert-halab --overwrite
 gr00t-validate --dataset-root ../data/processed/pick_tennis_ball_place_black_basket
 ```
 
+`data/` is gitignored (~11 GB). On a fresh clone, restore the three baseline tasks with:
+
+```bash
+cd preprocess
+./setup.sh
+./redownload_halab.sh --convert
+# GPU box: ./redownload_halab.sh --convert --transcode-h264
+```
+
 CLI defaults resolve to `../data/...` from the repo root, so you can run them from any cwd after the venv is active. Full pipeline: [preprocess/README.md](preprocess/README.md).
 
 ## train (GPU machine)
