@@ -21,8 +21,9 @@ Or: `./setup.sh`
 `../data/` is gitignored. To re-download the three baseline tasks (see `../train/datasets.txt`):
 
 ```bash
-./redownload_halab.sh                 # raw HA-Lab only → ../data/raw/halab/
-./redownload_halab.sh --convert       # also write GR00T LeRobot v2 → ../data/processed/
+./redownload_halab.sh                         # first 3 tasks, raw only
+./redownload_halab.sh --num-tasks 1           # just one
+./redownload_halab.sh -n 8 --convert          # first 8 (3 baseline, then HF list)
 ./redownload_halab.sh --convert --transcode-h264 --validate
 ./redownload_halab.sh --task pick_tennis_ball_place_black_basket
 ```

@@ -31,8 +31,9 @@ gr00t-validate --dataset-root ../data/processed/pick_tennis_ball_place_black_bas
 ```bash
 cd preprocess
 ./setup.sh
-./redownload_halab.sh --convert
-# GPU box: ./redownload_halab.sh --convert --transcode-h264
+./redownload_halab.sh --num-tasks 3 --convert
+# more tasks: ./redownload_halab.sh -n 8 --convert
+# GPU box:    ./redownload_halab.sh -n 3 --convert --transcode-h264
 ```
 
 CLI defaults resolve to `../data/...` from the repo root, so you can run them from any cwd after the venv is active. Full pipeline: [preprocess/README.md](preprocess/README.md).
